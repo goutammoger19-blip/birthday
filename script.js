@@ -1,7 +1,8 @@
-// script.js (module) - Three.js 3D scene + candle blow-out + confetti
+// script.js (module) - Three.js 3D scene + candle blow-out + confetti (hardened)
 import * as THREE from 'https://unpkg.com/three@0.152.2/build/three.module.js';
 import { OrbitControls } from 'https://unpkg.com/three@0.152.2/examples/jsm/controls/OrbitControls.js';
 
+// Safe DOM lookups (some elements may not exist in all contexts)
 const musicToggle = document.getElementById('musicToggle');
 const surpriseModal = document.getElementById('surpriseModal');
 const closeModalButton = document.querySelector('.close-modal');
@@ -25,38 +26,41 @@ async function toggleMusic() {
     if (!isPlaying) {
       await birthdayAudio.play();
       isPlaying = true;
-      musicToggle.textContent = '❚❚ Music';
+      if (musicToggle) musicToggle.textContent = '❚❚ Music';
     } else {
       birthdayAudio.pause();
       birthdayAudio.currentTime = 0;
       isPlaying = false;
-      musicToggle.textContent = '♫ Music';
+      if (musicToggle) musicToggle.textContent = '♫ Music';
     }
   } catch (error) {
     console.warn('Audio playback is unavailable in this browser or file path.', error);
-    musicToggle.textContent = '♫ Music';
+    if (musicToggle) musicToggle.textContent = '♫ Music';
     isPlaying = false;
   }
 }
 
 function openModal() {
+  if (!surpriseModal) return;
   surpriseModal.classList.add('visible');
   surpriseModal.setAttribute('aria-hidden', 'false');
 }
 
 function closeModal() {
+  if (!surpriseModal) return;
   surpriseModal.classList.remove('visible');
   surpriseModal.setAttribute('aria-hidden', 'true');
 }
 
-musicToggle.addEventListener('click', toggleMusic);
-giftButton.addEventListener('click', openModal);
-closeModalButton.addEventListener('click', closeModal);
-surpriseModal.addEventListener('click', (event) => {
-  if (event.target === surpriseModal) {
-    closeModal();
-  }
-});
+if (musicToggle) musicToggle.addEventListener('click', toggleMusic);
+if (giftButton) giftButton.addEventListener('click', openModal);
+if (closeModalButton) closeModalButton.addEventListener('click', closeModal);
+if (surpriseModal)
+  surpriseModal.addEventListener('click', (event) => {
+    if (event.target === surpriseModal) {
+      closeModal();
+    }
+  });
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') {
@@ -64,17 +68,23 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-const observer = new IntersectionObserver(
-  (entries) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('visible');
-      }
-    });
-  },
-  { threshold: 0.2 }
-);
-revealItems.forEach((item) => observer.observe(item));
+// IntersectionObserver for reveals - guard in case it's unavailable
+if ('IntersectionObserver' in window) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    },
+    { threshold: 0.2 }
+  );
+  revealItems.forEach((item) => observer.observe(item));
+} else {
+  // Fallback: just reveal everything
+  revealItems.forEach((item) => item.classList.add('visible'));
+}
 
 function getNextBirthdayDate() {
   const today = new Date();
@@ -85,6 +95,8 @@ function getNextBirthdayDate() {
 }
 
 function updateCountdown() {
+  if (!countDownEls.days) return;
+
   const targetDate = getNextBirthdayDate();
   const now = new Date();
   const difference = targetDate - now;
@@ -112,10 +124,17 @@ updateCountdown();
 setInterval(updateCountdown, 1000);
 
 /* -----------------------------
-   Confetti (canvas overlay)
+   Confetti (canvas overlay) - defensive implementation
    ----------------------------- */
 class Confetti {
   constructor(canvas) {
+    if (!canvas) {
+      this.canvas = null;
+      this.ctx = null;
+      this.particles = [];
+      this.running = false;
+      return;
+    }
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.particles = [];
@@ -126,15 +145,17 @@ class Confetti {
   }
 
   resize() {
+    if (!this.canvas || !this.ctx) return;
+    // reset transform and scale cleanly
     this.canvas.width = window.innerWidth * devicePixelRatio;
     this.canvas.height = window.innerHeight * devicePixelRatio;
     this.canvas.style.width = window.innerWidth + 'px';
     this.canvas.style.height = window.innerHeight + 'px';
-    this.ctx.scale(devicePixelRatio, devicePixelRatio);
+    this.ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
   }
 
   start(amount = 140) {
-    if (window.innerWidth <= 420) return; // skip on tiny screens
+    if (!this.canvas || window.innerWidth <= 420) return; // skip on tiny screens
     this.particles = [];
     for (let i = 0; i < amount; i++) {
       this.particles.push(this._createParticle());
@@ -161,6 +182,7 @@ class Confetti {
   }
 
   _tick(now) {
+    if (!this.running) return;
     const dt = (now - this.lastTime) / 1000;
     this.lastTime = now;
     this._update(dt);
@@ -169,7 +191,7 @@ class Confetti {
       requestAnimationFrame(this._tick.bind(this));
     } else {
       this.running = false;
-      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      if (this.ctx) this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
   }
 
@@ -185,6 +207,7 @@ class Confetti {
   }
 
   _draw() {
+    if (!this.ctx) return;
     const ctx = this.ctx;
     ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     for (const p of this.particles) {
@@ -223,8 +246,13 @@ try {
   blowSound = null;
 }
 
-init3D();
-animate();
+// initialize only if we have a container
+if (container) {
+  init3D();
+  animate();
+} else {
+  console.warn('No #threeContainer found — skipping WebGL initialization.');
+}
 
 function init3D() {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -239,7 +267,7 @@ function init3D() {
 
   // scene & camera
   scene = new THREE.Scene();
-  const aspect = container.clientWidth / container.clientHeight;
+  const aspect = container.clientWidth / container.clientHeight || window.innerWidth / window.innerHeight;
   camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 1000);
   camera.position.set(0, 1.6, 5);
 
@@ -325,204 +353,4 @@ function init3D() {
       roughness: 0.2
     });
     const balloon = new THREE.Mesh(bGeo, bMat);
-    balloon.position.set((Math.random() - 0.5) * 3.6, -0.2 + Math.random() * 1.8, -1.0 + Math.random() * 2.4);
-    balloon.scale.set(1, 1.1 + Math.random() * 0.3, 1);
-    balloon.userData.baseY = balloon.position.y;
-    balloon.userData.speed = 0.6 + Math.random() * 0.9;
-    balloon.userData.type = 'balloon';
-    balloonGroup.add(balloon);
-
-    // string as a simple line
-    const points = [];
-    points.push(new THREE.Vector3(balloon.position.x, balloon.position.y - 0.36, balloon.position.z));
-    points.push(new THREE.Vector3(balloon.position.x, balloon.position.y - 1.1, balloon.position.z + 0.02));
-    const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
-    const lineMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 });
-    const l = new THREE.Line(lineGeo, lineMat);
-    balloonGroup.add(l);
-  }
-
-  // small spark particles
-  const particleCount = 80;
-  const pPositions = new Float32Array(particleCount * 3);
-  for (let i = 0; i < particleCount; i++) {
-    const idx = i * 3;
-    pPositions[idx] = (Math.random() - 0.5) * 6;
-    pPositions[idx + 1] = Math.random() * 2 + 0.2;
-    pPositions[idx + 2] = (Math.random() - 0.5) * 4;
-  }
-  const pGeo = new THREE.BufferGeometry();
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
-  const pMat = new THREE.PointsMaterial({
-    color: 0xffd166,
-    size: 0.06,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 0.95
-  });
-  const particles = new THREE.Points(pGeo, pMat);
-  scene.add(particles);
-
-  // Controls (desktop)
-  const isMobile = /Mobi|Android|iPhone|iPad|Tablet/i.test(navigator.userAgent) || window.innerWidth <= 780;
-  if (!isMobile) {
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.dampingFactor = 0.08;
-    controls.minDistance = 2.8;
-    controls.maxDistance = 8;
-    controls.enablePan = false;
-  }
-
-  // pointer move for parallax
-  window.addEventListener('pointermove', (e) => {
-    const rect = renderer.domElement.getBoundingClientRect();
-    pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-    pointer.y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-  });
-
-  // click / tap to blow flames
-  renderer.domElement.addEventListener('pointerdown', onPointerDown);
-
-  window.addEventListener('resize', onWindowResize);
-  onWindowResize();
-}
-
-function onPointerDown(e) {
-  const rect = renderer.domElement.getBoundingClientRect();
-  const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-  raycaster.setFromCamera({ x, y }, camera);
-  const intersects = raycaster.intersectObjects(flameMeshes, true);
-  if (intersects.length) {
-    const mesh = intersects[0].object;
-    const state = flameState.get(mesh.id);
-    if (state && state.lit) {
-      // extinguish the flame: mark and animate in render loop
-      state.lit = false;
-      state.start = performance.now();
-      state.duration = 700 + Math.random() * 400;
-      flameState.set(mesh.id, state);
-
-      // optional blow sound
-      try {
-        if (blowSound) {
-          blowSound.currentTime = 0;
-          blowSound.play().catch(() => {});
-        } else {
-          // soft fallback: tiny click using WebAudio (short puff)
-          try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const o = ctx.createOscillator();
-            const g = ctx.createGain();
-            o.type = 'triangle';
-            o.frequency.value = 200;
-            g.gain.value = 0.02;
-            o.connect(g);
-            g.connect(ctx.destination);
-            o.start();
-            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.12);
-            o.stop(ctx.currentTime + 0.13);
-          } catch (e) {}
-        }
-      } catch (err) {
-        // ignore audio errors
-      }
-
-      checkAllFlames();
-    }
-  }
-}
-
-function checkAllFlames() {
-  // if all flames are unlit, trigger confetti
-  const anyLit = Array.from(flameState.values()).some((s) => s.lit);
-  if (!anyLit) {
-    confetti.start(220);
-  }
-}
-
-function onWindowResize() {
-  if (!renderer || !camera) return;
-  const w = container.clientWidth;
-  const h = container.clientHeight;
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
-  renderer.setSize(w, h);
-}
-
-/* Animation loop */
-function animate() {
-  requestAnimationFrame(animate);
-  const elapsed = clock.getElapsedTime();
-
-  // cake group (rotate + float)
-  scene.traverse((obj) => {
-    if (obj.type === 'Group' && obj.children.some((c) => c.geometry && c.geometry.type === 'CylinderGeometry')) {
-      obj.rotation.y = Math.sin(elapsed * 0.2) * 0.08;
-      obj.position.y = -0.18 + Math.sin(elapsed * 0.6) * 0.02;
-    }
-  });
-
-  // animate balloons
-  scene.traverse((obj) => {
-    if (obj.userData && obj.userData.type === 'balloon') {
-      obj.position.y = obj.userData.baseY + Math.sin(elapsed * obj.userData.speed + obj.id) * 0.12;
-      obj.position.x += Math.sin(elapsed * (0.12 + (obj.id % 3) * 0.03)) * 0.001;
-    }
-  });
-
-  // animate particles (slight upward shimmer)
-  const pts = scene.children.find((s) => s.type === 'Points');
-  if (pts) {
-    const positions = pts.geometry.attributes.position.array;
-    for (let i = 0; i < positions.length; i += 3) {
-      positions[i + 1] += Math.sin(elapsed * 0.6 + i) * 0.0005;
-    }
-    pts.geometry.attributes.position.needsUpdate = true;
-  }
-
-  // animate flames (scale down when extinguishing)
-  for (const mesh of flameMeshes) {
-    const state = flameState.get(mesh.id);
-    if (!state) continue;
-    const light = flameLights.get(mesh.id);
-    if (state.lit) {
-      // subtle flicker
-      const flicker = 0.9 + Math.sin(elapsed * 22 + mesh.id) * 0.08;
-      mesh.scale.set(flicker, flicker, flicker);
-      if (light) light.intensity = 0.9 + Math.sin(elapsed * 9 + mesh.id) * 0.15;
-    } else {
-      // extinguishing animation
-      const now = performance.now();
-      const t = Math.min(1, (now - (state.start || now)) / (state.duration || 600));
-      const progress = 1 - easeOutCubic(t);
-      mesh.scale.set(progress * 1, progress * 1, progress * 1);
-      if (light) light.intensity = progress * 0.9;
-      if (t >= 1) {
-        // make invisible finally
-        mesh.visible = false;
-        if (light) {
-          scene.remove(light);
-          flameLights.delete(mesh.id);
-        }
-      }
-    }
-  }
-
-  // Camera parallax
-  const parallaxStrength = 0.35;
-  const targetX = -pointer.x * parallaxStrength;
-  const targetY = pointer.y * parallaxStrength * 0.7;
-  camera.position.x += (targetX - camera.position.x) * 0.06;
-  camera.position.y += (targetY - camera.position.y) * 0.06;
-  camera.lookAt(0, -0.2, 0);
-
-  if (controls) controls.update();
-  renderer.render(scene, camera);
-}
-
-/* small easing */
-function easeOutCubic(t) {
-  return 1 - Math.pow(1 - t, 3);
-}
+    balloon.position.set((Math.random() - 0.5) * 3.6, -0.2 + Math.random() * 1.8, -1.0 + Math.rand
