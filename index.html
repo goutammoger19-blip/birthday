@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Happy Birthday Sister</title>
+    <meta
+      name="description"
+      content="A sweet birthday surprise for the best sister in the world."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="bg-glow glow-one"></div>
+    <div class="bg-glow glow-two"></div>
+
+    <header class="topbar">
+      <div class="brand">Sister</div>
+      <button class="music-toggle" id="musicToggle" type="button" aria-label="Toggle birthday music">
+        ♫ Music
+      </button>
+    </header>
+
+    <main class="page-shell">
+      <section class="hero reveal">
+        <div class="hero-copy">
+          <p class="eyebrow">A little birthday magic for you</p>
+          <h1>Happy Birthday, <span>Sister</span>!</h1>
+          <p class="subtitle">
+            May your day be filled with laughter, love, sweet memories, and all the things
+            that make your heart feel at home.
+          </p>
+
+          <div class="cta-row">
+            <button class="gift-button" type="button">Open surprise</button>
+            <a class="secondary-button" href="#gallery">See memories</a>
+          </div>
+        </div>
+
+        <div class="hero-art" aria-hidden="true">
+          <!-- 3D canvas container -->
+          <div id="threeContainer" class="three-container" aria-hidden="true"></div>
+
+          <!-- Fallback decorative markup (kept for accessibility / fallback) -->
+          <div class="balloon balloon-one" aria-hidden="true"></div>
+          <div class="balloon balloon-two" aria-hidden="true"></div>
+          <div class="balloon balloon-three" aria-hidden="true"></div>
+          <div class="cake" aria-hidden="true">
+            <div class="cake-top"></div>
+            <div class="cake-body"></div>
+            <div class="candle candle-one"></div>
+            <div class="candle candle-two"></div>
+            <div class="candle candle-three"></div>
+            <div class="spark spark-one"></div>
+            <div class="spark spark-two"></div>
+            <div class="spark spark-three"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="story reveal" id="about">
+        <div class="section-heading">
+          <p class="eyebrow">For the one who shines</p>
+          <h2>Somewhere between all the laughter and the little moments, you are the reason everything feels brighter.</h2>
+        </div>
+        <p>
+          You are kind, thoughtful, funny, and so full of love. You make life softer, warmer,
+          and much more beautiful. This birthday is a reminder of how deeply you are loved and
+          how lucky we are to have you in our lives.
+        </p>
+      </section>
+
+      <section class="gallery reveal" id="gallery">
+        <div class="section-heading compact">
+          <p class="eyebrow">Moments to treasure</p>
+          <h2>Sweet memories</h2>
+        </div>
+
+        <div class="photo-grid">
+          <div class="photo-card photo-one"><span>Joy</span></div>
+          <div class="photo-card photo-two"><span>Laughter</span></div>
+          <div class="photo-card photo-three"><span>Love</span></div>
+          <div class="photo-card photo-four"><span>Magic</span></div>
+        </div>
+      </section>
+
+      <section class="countdown reveal" id="countdown">
+        <div class="section-heading compact">
+          <p class="eyebrow">The next celebration</p>
+          <h2>Birthday countdown</h2>
+        </div>
+
+        <div class="countdown-box" aria-live="polite">
+          <div class="time-unit">
+            <strong data-days>00</strong>
+            <span>Days</span>
+          </div>
+          <div class="time-unit">
+            <strong data-hours>00</strong>
+            <span>Hours</span>
+          </div>
+          <div class="time-unit">
+            <strong data-minutes>00</strong>
+            <span>Minutes</span>
+          </div>
+          <div class="time-unit">
+            <strong data-seconds>00</strong>
+            <span>Seconds</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="message reveal">
+        <div class="message-card">
+          <p class="eyebrow">A little wish</p>
+          <blockquote>
+            “May your heart always be happy, your dreams always be big, and your life always
+            bloom with love, peace, and beautiful surprises.”
+          </blockquote>
+        </div>
+      </section>
+    </main>
+
+    <div class="surprise-modal" id="surpriseModal" aria-hidden="true">
+      <div class="modal-card">
+        <button class="close-modal" type="button" aria-label="Close surprise">×</button>
+        <p class="eyebrow">Special surprise</p>
+        <h3>You are loved beyond words.</h3>
+        <p>
+          Thank you for being such a beautiful soul. May this year bring you endless smiles,
+          new adventures, and all the happiness you deserve.
+        </p>
+      </div>
+    </div>
+
+    <footer class="footer reveal">
+      Made with love for the best sister ever ❤️
+    </footer>
+
+    <!-- Confetti canvas overlay -->
+    <canvas id="confettiCanvas" aria-hidden="true"></canvas>
+
+    <!-- Module script for Three.js scene + UI -->
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
